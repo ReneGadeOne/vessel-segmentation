@@ -11,8 +11,8 @@ from glob import glob
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import accuracy_score, f1_score, jaccard_score, precision_score, recall_score
 
-H = 256
-W = 256
+# H = 256
+# W = 256
 
 def load_data(path):
     x = sorted(glob(os.path.join(path, "image", "*.png")))

@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import os
-import argparse
 import tqdm
 from data import augment_data
 
@@ -20,8 +19,8 @@ def strided_crop(img, label, height, width, name, stride, directories):
                 crop_img = img[h * stride:(h * stride) + height,w * stride:(w * stride) + width]
                 crop_label = label[h * stride:(h * stride) + height,w * stride:(w * stride) + width]
                 
-                img_path = directories[1] + "/" + name  + str(i+1)+".jpg"                
-                mask_path = directories[2] + "/" + name + str(i+1)+".jpg"
+                img_path = directories[1] + "/" + name + "_" + str(i+1)+".jpg"                
+                mask_path = directories[2] + "/" + name + "_" + str(i+1)+".jpg"
                 if len(np.unique(crop_label)) > 1: 
                     cv2.imwrite(mask_path,crop_label)
                     cv2.imwrite(img_path,crop_img)

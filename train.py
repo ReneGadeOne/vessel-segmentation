@@ -13,6 +13,7 @@ import argparse
 from models import build_unet, build_densenet121_unet, attention_unet
 
 
+
 def str2bool(v):
     if isinstance(v, bool):
         return v
@@ -50,7 +51,6 @@ def tf_parse(x, y):
 
     x, y = tf.numpy_function(_parse, [x, y], [tf.float32, tf.float32])
     x.set_shape([H, W, 3])
-    print(H,W)
     y.set_shape([H, W, 1])
     return x, y
 
@@ -64,7 +64,8 @@ def tf_dataset(X, Y, batch_size=2):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--crop_shape', type=int, default=256)
-    parser.add_argument('--bs', type=int, default=16)
+    parser.add_argument('--stride', type=int, default=256)
+    parser.add_argument('--bs', type=int, default=2)
     parser.add_argument('--epoch', type=int, default=100)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--augment', type=str2bool, default=False)
@@ -94,16 +95,19 @@ if __name__ == "__main__":
     train_x, train_y = data_x[0:int(len(data_x)*0.85)], data_y[0:int(len(data_y)*0.85)]
     valid_x, valid_y = data_x[int(len(data_x)*0.85):], data_y[int(len(data_y)*0.85):]
 
-    print(f"Train: {len(train_x)} - {len(train_y)}")
-    print(f"Valid: {len(valid_x)} - {len(valid_y)}")
+    print(f"Train Images: {len(train_x)} - {len(train_y)}")
+    print(f"Valid Images: {len(valid_x)} - {len(valid_y)}")
 
-    patching(images_path=train_x, input_dim=H, stride=256, data="train", augment=args.augment)
-    patching(images_path=valid_x, input_dim=H, stride=256, data="valid", augment=False)
+    patching(images_path=train_x, input_dim=H, stride=args.stride, data="train", augment=args.augment)
+    patching(images_path=valid_x, input_dim=H, stride=args.stride, data="valid", augment=False)
 
-    train_path = "Crops/train"
-    train_x, train_y = load_data(train_path)
-    valid_path = "Crops/valid"
-    valid_x, valid_y = load_data(data_path)
+    dataset_path = "Crops"
+    train_x, train_y = load_data(os.path.join(dataset_path, "train"))
+    train_x, train_y = shuffling(train_x, train_y)
+    valid_x, valid_y = load_data(os.path.join(dataset_path, "valid"))
+
+    print(f"Train Crops: {len(train_x)} - {len(train_y)}")
+    print(f"Valid Crops: {len(valid_x)} - {len(valid_y)}")
 
     train_dataset = tf_dataset(train_x, train_y, batch_size=batch_size)
     valid_dataset = tf_dataset(valid_x, valid_y, batch_size=batch_size)
@@ -120,15 +124,16 @@ if __name__ == "__main__":
         model = build_unet((H, W, 3))
     if args.model == "attunet":
         model = attention_unet((H, W, 3))
-    else:
+    if args.model == "denseunet":
         model = build_densenet121_unet((H, W, 3))
 
     model.compile(loss=dice_loss, optimizer=Adam(lr), metrics=[dice_coef, iou, Recall(), Precision()])
+    # model.summary()
 
     callbacks = [
         ModelCheckpoint(model_path, verbose=1, save_best_only=True),
+        ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=5, min_lr=1e-6, verbose=1),
         CSVLogger(csv_path),
-        ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=5, min_lr=2e-6, verbose=1),
         TensorBoard(log_dir='./logs', histogram_freq=1, write_graph=True, write_images=True),
         EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
     ]
@@ -142,7 +147,6 @@ if __name__ == "__main__":
         callbacks=callbacks
     )
 
-
-    # LearningRateScheduler maybe can help!
+    # # LearningRateScheduler maybe can help!
 
    
