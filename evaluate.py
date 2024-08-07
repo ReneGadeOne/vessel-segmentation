@@ -10,23 +10,15 @@ import tensorflow as tf
 from glob import glob
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import accuracy_score, f1_score, jaccard_score, precision_score, recall_score
-
+from data import load_data, create_dir, clahe_3d
 # H = 256
 # W = 256
 
-def load_data(path):
-    x = sorted(glob(os.path.join(path, "image", "*.png")))
-    y = sorted(glob(os.path.join(path, "mask", "*.png")))
-    return x, y 
-
-def create_dir(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
 def read_image(path):
     x = cv2.imread(path, cv2.IMREAD_COLOR)
-    # x = clahe(x,50)
     ori_x = x
+    x = clahe_3d(x,50) 
+    x = cv2.bilateralFilter(x, d=8, sigmaColor=50, sigmaSpace=50)
     x = x/255.0
     x = x.astype(np.float32)
     return ori_x, x
@@ -69,12 +61,12 @@ if __name__ == "__main__":
     create_dir("results")
 
     """ Load the dataset """
-    dataset_path = "Data/FullImages/test"
+    dataset_path = "Dataset/test"
     test_x, test_y = load_data(dataset_path)
     print(f"Test: {len(test_x)} - {len(test_y)}")
 
     """ Load the model """
-    model = tf.keras.models.load_model('model.h5',compile=False)
+    model = tf.keras.models.load_model('files/model.h5',compile=False)
     model.compile()
 
     # Make the prediction and calculate the metrics values
@@ -85,8 +77,8 @@ if __name__ == "__main__":
 
         # Read the image and mask 
         ori_x, x = read_image(x)
-
         ori_y, y = read_mask(y)
+
         y_pred = strided_crop(x,x.shape[0], x.shape[1], 256, 256, stride= args.stride)
 
         # Saving the images 

@@ -56,3 +56,4 @@ def load_data(path):
     y = sorted(glob(os.path.join(path, "mask", "*.jpg")))
     return x, y
 
+

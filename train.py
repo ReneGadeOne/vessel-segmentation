@@ -11,8 +11,7 @@ from data import create_dir, load_data, shuffling, clahe_3d
 from strided_crop import patching
 import argparse
 from models import build_unet, build_densenet121_unet, attention_unet
-
-
+import shutil
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -146,6 +145,8 @@ if __name__ == "__main__":
         validation_steps=valid_setps,
         callbacks=callbacks
     )
+
+    shutil.make_archive("logs","zip" , "logs")
 
     # # LearningRateScheduler maybe can help!
 
